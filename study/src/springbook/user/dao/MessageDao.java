@@ -8,10 +8,10 @@ import java.sql.SQLException;
 
 import springbook.user.domain.User;
 
-public class UserDao {
+public class MessageDao {
 	private ConnectionMaker connectionMaker;
 	
-	public UserDao(ConnectionMaker connectionMaker) {
+	public MessageDao(ConnectionMaker connectionMaker) {
 		this.connectionMaker = connectionMaker;
 	}
 	
