@@ -12,6 +12,11 @@
 	
 	<bean id="userDao" class="springbook.user.dao.UserDao">
 		<property name="dataSource" ref="dataSource" />
-	</bean>						
+		<property name="jdbcContext" ref="jdbcContext" />
+	</bean>
+	
+	<bean id="jdbcContext" class="spring.user.dao.JdbcContext">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
 
 </beans>
