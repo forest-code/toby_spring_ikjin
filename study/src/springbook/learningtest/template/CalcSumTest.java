@@ -31,4 +31,5 @@ public class CalcSumTest {
 	public void concatenateStrings() throws IOException {
 		assertThat(calculator.concatenate(this.numFilepath), is("1234"));
 	}
+	
 }
