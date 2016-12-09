@@ -3,6 +3,7 @@ package springbook.user.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +14,9 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import springbook.dao.UserDao;
 import springbook.user.domain.Level;
@@ -28,6 +32,8 @@ public class UserServiceTest {
 	UserService userService;
 	@Autowired
 	UserLevelUpgradePolicy userLevelUpgradePolicy;
+	@Autowired
+	PlatformTransactionManager transactionManager;
 	List<User> users;
 	
 	@Before
@@ -47,7 +53,7 @@ public class UserServiceTest {
 	}
 	
 	@Test
-	public void upgradeLevels() {
+	public void upgradeLevels() throws Exception {
 		userDao.deleteAll();
 		for(User user : users) {
 			userDao.add(user);
@@ -99,4 +105,59 @@ public class UserServiceTest {
 		assertThat(userWithoutLevelRead.getLevel(), is(userWithoutLevel.getLevel()));
 		
 	}
+	
+	static class TestUserService extends UserService {		
+		private String id;
+		
+		private TestUserService(String id) {
+			this.id = id;
+		}
+		
+		@Override
+		public void upgradeLevels() throws Exception {
+			TransactionStatus status = super.transactionManager.getTransaction(new DefaultTransactionDefinition());
+			try {
+				List<User> users = userDao.getAll();
+				for(User user : users) {
+					if(super.userLevelUpgradePolicy.canUpgradeLevel(user)) {
+						if(user.getId().equals(this.id)) {
+							throw new TestUserServiceException();
+						}
+						super.userLevelUpgradePolicy.upgradeLevel(user);
+					}
+				}
+				super.transactionManager.commit(status);
+			} catch(Exception e) {
+				super.transactionManager.rollback(status);
+				throw e;
+			} finally {
+			}
+		}
+		
+	}
+	
+	static class TestUserServiceException extends RuntimeException {
+		
+	}
+	
+	@Test
+	public void upgradeAllOrNothing() throws Exception {
+		UserService testUserService = new TestUserService(users.get(3).getId());
+		testUserService.setUserDao(this.userDao);
+		testUserService.setUserLevelUpgradePolicy(this.userLevelUpgradePolicy);
+		testUserService.setTransactionManager(this.transactionManager);
+		
+		userDao.deleteAll();
+		for(User user : users) userDao.add(user);
+		
+		try {
+			testUserService.upgradeLevels();
+			fail("TestUserServiceException expected");
+		} catch(TestUserServiceException e) {
+			
+		}
+		
+		checkLevelUpgrade(users.get(1), false);
+	}
 }
+

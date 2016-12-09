@@ -2,6 +2,15 @@ package springbook.user.service;
 
 import java.util.List;
 
+import javax.sql.DataSource;
+
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import springbook.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
@@ -10,7 +19,12 @@ import springbook.user.domain.UserLevelUpgradePolicy;
 public class UserService {
 	UserDao userDao;
 	UserLevelUpgradePolicy userLevelUpgradePolicy;
-		
+	PlatformTransactionManager transactionManager;
+	
+	public void setTransactionManager(PlatformTransactionManager transactionManager) {
+		this.transactionManager = transactionManager;
+	}
+	
 	public void setUserDao(UserDao userDao) {
 		this.userDao = userDao;
 	}
@@ -19,13 +33,23 @@ public class UserService {
 		this.userLevelUpgradePolicy = userLevelUpgradePolicy;
 	}
 	
-	public void upgradeLevels() {
-		List<User> users = userDao.getAll();
-		for(User user : users) {
-			if(userLevelUpgradePolicy.canUpgradeLevel(user)) {
-				userLevelUpgradePolicy.upgradeLevel(user);
-			}	
+	public void upgradeLevels() throws Exception {
+		TransactionStatus status = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
+		try {
+			List<User> users = userDao.getAll();
+			for(User user : users) {
+				if(userLevelUpgradePolicy.canUpgradeLevel(user)) {
+					userLevelUpgradePolicy.upgradeLevel(user);
+				}	
+			}
+			this.transactionManager.commit(status);
+		} catch(Exception e) {
+			this.transactionManager.rollback(status);
+			throw e;
+		} finally {
+			
 		}
+		
 	}
 
 	public void add(User user) {
