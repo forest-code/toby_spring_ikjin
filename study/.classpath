@@ -14,5 +14,8 @@
 	<classpathentry kind="lib" path="src/lib/com.springsource.org.junit-4.7.0.jar"/>
 	<classpathentry kind="lib" path="src/lib/org.springframework.transaction-3.0.3.RELEASE.jar"/>
 	<classpathentry kind="lib" path="src/lib/org.springframework.test-3.0.3.RELEASE.jar"/>
+	<classpathentry kind="lib" path="src/lib/com.springsource.javax.activation-1.1.0.jar"/>
+	<classpathentry kind="lib" path="src/lib/com.springsource.javax.mail-1.4.0.jar"/>
+	<classpathentry kind="lib" path="src/lib/org.springframework.context.support-3.0.3.release.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

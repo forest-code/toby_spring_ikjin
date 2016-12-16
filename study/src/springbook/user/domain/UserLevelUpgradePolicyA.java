@@ -1,16 +1,9 @@
 package springbook.user.domain;
 
-import springbook.dao.UserDao;
 
 public class UserLevelUpgradePolicyA implements UserLevelUpgradePolicy {
-	UserDao userDao;
-	
 	public final int MIN_LOGCOUNT_FOR_SILVER = 50;
 	public final int MIN_RECOMMEND_FOR_GOLD = 30;
-	
-	public void setUserDao(UserDao userDao) {
-		this.userDao = userDao;
-	}
 	
 	@Override
 	public boolean canUpgradeLevel(User user) {
@@ -24,8 +17,10 @@ public class UserLevelUpgradePolicyA implements UserLevelUpgradePolicy {
 	}
 	
 	@Override
-	public void upgradeLevel(User user) {
+	public User upgradeLevel(User user) {
 		user.upgradeLevel();
-		userDao.update(user);
+		return user;
 	}
+	
+	
 }

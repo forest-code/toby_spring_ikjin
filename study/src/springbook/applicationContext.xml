@@ -10,14 +10,17 @@
 		<property name="password" value="admin" />
 	</bean>
 	
-	<bean id="userLevelUpgradePolicy" class="springbook.user.domain.UserLevelUpgradePolicyA">
-		<property name="userDao" ref="userDao" />
+	<bean id="userLevelUpgradePolicy" class="springbook.user.domain.UserLevelUpgradePolicyA" />
+
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="mail.server.com" />
 	</bean>
 	
 	<bean id="userService" class="springbook.user.service.UserService">
 		<property name="userDao" ref="userDao" />
 		<property name="userLevelUpgradePolicy" ref="userLevelUpgradePolicy" />
 		<property name="transactionManager" ref="transactionManager" />
+		<property name="mailSender" ref="mailSender" />
 	</bean>
 
 	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">

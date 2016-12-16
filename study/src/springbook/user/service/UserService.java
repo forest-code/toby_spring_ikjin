@@ -2,14 +2,11 @@ package springbook.user.service;
 
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import springbook.dao.UserDao;
 import springbook.user.domain.Level;
@@ -20,6 +17,7 @@ public class UserService {
 	UserDao userDao;
 	UserLevelUpgradePolicy userLevelUpgradePolicy;
 	PlatformTransactionManager transactionManager;
+	MailSender mailSender;
 	
 	public void setTransactionManager(PlatformTransactionManager transactionManager) {
 		this.transactionManager = transactionManager;
@@ -32,6 +30,10 @@ public class UserService {
 	public void setUserLevelUpgradePolicy(UserLevelUpgradePolicy userLevelUpgradePolicy) {
 		this.userLevelUpgradePolicy = userLevelUpgradePolicy;
 	}
+
+	public void setMailSender(MailSender mailSender) {
+		this.mailSender = mailSender;
+	}
 	
 	public void upgradeLevels() throws Exception {
 		TransactionStatus status = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
@@ -39,7 +41,10 @@ public class UserService {
 			List<User> users = userDao.getAll();
 			for(User user : users) {
 				if(userLevelUpgradePolicy.canUpgradeLevel(user)) {
-					userLevelUpgradePolicy.upgradeLevel(user);
+					user = userLevelUpgradePolicy.upgradeLevel(user);
+
+					userDao.update(user);
+					sendUpgradeEmail(user);
 				}	
 			}
 			this.transactionManager.commit(status);
@@ -74,4 +79,13 @@ public class UserService {
 //		user.upgradeLevel();
 //		userDao.update(user);
 //	}
+	protected void sendUpgradeEmail(User user) {
+		SimpleMailMessage mailMessage = new SimpleMailMessage();
+		mailMessage.setTo(user.getEmail());
+		mailMessage.setFrom("useradmin@ksug.org");
+		mailMessage.setSubject("Upgrade 안내");
+		mailMessage.setText("사용자님의 등급이 " + user.getLevel().name());
+		
+		this.mailSender.send(mailMessage);
+	}
 }

@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailSender;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -34,16 +35,18 @@ public class UserServiceTest {
 	UserLevelUpgradePolicy userLevelUpgradePolicy;
 	@Autowired
 	PlatformTransactionManager transactionManager;
+	@Autowired
+	MailSender mailSender;
 	List<User> users;
 	
 	@Before
 	public void setUp() {
 		users = Arrays.asList(
-				new User("bumjin","박범진","p1",Level.BASIC,49,0),
-				new User("joytouch","강명성","p2",Level.BASIC,50,0),
-				new User("erwins","신승한","p3",Level.SILVER,60,29),
-				new User("madnite1","이상호","p4",Level.SILVER,60,30),
-				new User("green","오민규","p5",Level.GOLD,100,Integer.MAX_VALUE)
+				new User("bumjin","박범진","p1",Level.BASIC,49,0,"bumjin@email.com"),
+				new User("joytouch","강명성","p2",Level.BASIC,50,0,"joytouch@email.com"),
+				new User("erwins","신승한","p3",Level.SILVER,60,29,"erwins@email.com"),
+				new User("madnite1","이상호","p4",Level.SILVER,60,30,"madnite1@email.com"),
+				new User("green","오민규","p5",Level.GOLD,100,Integer.MAX_VALUE,"green@email.com")
 				);
 	}
 	
@@ -59,6 +62,9 @@ public class UserServiceTest {
 			userDao.add(user);
 		}
 		
+		MockMailSender mockMailSender = new MockMailSender();
+		userService.setMailSender(mockMailSender);
+		
 		userService.upgradeLevels();
 		
 //		checkLevel(users.get(0), Level.BASIC);
@@ -71,6 +77,11 @@ public class UserServiceTest {
 		checkLevelUpgrade(users.get(2), false);
 		checkLevelUpgrade(users.get(3), true);
 		checkLevelUpgrade(users.get(4), false);
+		
+		List<String> requests = mockMailSender.getRequests();
+		assertThat(requests.size(), is(2));
+		assertThat(requests.get(0), is(users.get(1).getEmail()));
+		assertThat(requests.get(1), is(users.get(3).getEmail()));
 	}
 	
 	private void checkLevel(User user, Level expectedLevel) {
@@ -123,7 +134,10 @@ public class UserServiceTest {
 						if(user.getId().equals(this.id)) {
 							throw new TestUserServiceException();
 						}
-						super.userLevelUpgradePolicy.upgradeLevel(user);
+						user = super.userLevelUpgradePolicy.upgradeLevel(user);
+
+						userDao.update(user);
+						sendUpgradeEmail(user);
 					}
 				}
 				super.transactionManager.commit(status);
@@ -146,6 +160,7 @@ public class UserServiceTest {
 		testUserService.setUserDao(this.userDao);
 		testUserService.setUserLevelUpgradePolicy(this.userLevelUpgradePolicy);
 		testUserService.setTransactionManager(this.transactionManager);
+		testUserService.setMailSender(this.mailSender);
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
