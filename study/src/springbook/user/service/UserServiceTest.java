@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,6 +32,8 @@ public class UserServiceTest {
 	UserDao userDao;
 	@Autowired
 	UserService userService;
+	@Autowired
+	UserServiceImpl userServiceImpl;
 	@Autowired
 	UserLevelUpgradePolicy userLevelUpgradePolicy;
 	@Autowired
@@ -63,7 +66,7 @@ public class UserServiceTest {
 		}
 		
 		MockMailSender mockMailSender = new MockMailSender();
-		userService.setMailSender(mockMailSender);
+		userServiceImpl.setMailSender(mockMailSender);
 		
 		userService.upgradeLevels();
 		
@@ -117,7 +120,7 @@ public class UserServiceTest {
 		
 	}
 	
-	static class TestUserService extends UserService {		
+	static class TestUserService extends UserServiceImpl {		
 		private String id;
 		
 		private TestUserService(String id) {
@@ -125,8 +128,7 @@ public class UserServiceTest {
 		}
 		
 		@Override
-		public void upgradeLevels() throws Exception {
-			TransactionStatus status = super.transactionManager.getTransaction(new DefaultTransactionDefinition());
+		public void upgradeLevels() {
 			try {
 				List<User> users = userDao.getAll();
 				for(User user : users) {
@@ -140,9 +142,7 @@ public class UserServiceTest {
 						sendUpgradeEmail(user);
 					}
 				}
-				super.transactionManager.commit(status);
 			} catch(Exception e) {
-				super.transactionManager.rollback(status);
 				throw e;
 			} finally {
 			}
@@ -156,23 +156,52 @@ public class UserServiceTest {
 	
 	@Test
 	public void upgradeAllOrNothing() throws Exception {
-		UserService testUserService = new TestUserService(users.get(3).getId());
+		TestUserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao);
 		testUserService.setUserLevelUpgradePolicy(this.userLevelUpgradePolicy);
-		testUserService.setTransactionManager(this.transactionManager);
 		testUserService.setMailSender(this.mailSender);
+		
+		UserServiceTx txUserService = new UserServiceTx();
+		txUserService.setTransactionManager(transactionManager);
+		txUserService.setUserService(testUserService);
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
 		
 		try {
-			testUserService.upgradeLevels();
+			txUserService.upgradeLevels();
 			fail("TestUserServiceException expected");
 		} catch(TestUserServiceException e) {
 			
 		}
 		
 		checkLevelUpgrade(users.get(1), false);
+	}
+	
+	static class MockUserDao implements UserDao {
+		private List<User> users;
+		private List<User> updated = new ArrayList<User>();
+		
+		private MockUserDao(List<User> users) {
+			this.users = users;
+		}
+		
+		public List<User> getUpdated() {
+			return this.updated;
+		}
+		
+		public List<User> getAll() {
+			return this.users;
+		}
+		
+		public void update(User user) {
+			updated.add(user);
+		}
+		
+		public void add(User user) { throw new UnsupportedOperationException(); }
+		public void deleteAll() { throw new UnsupportedOperationException(); }
+		public User get(String id) { throw new UnsupportedOperationException(); }
+		public int getCount() { throw new UnsupportedOperationException(); }
 	}
 }
 
