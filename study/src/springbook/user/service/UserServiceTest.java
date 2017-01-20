@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,10 +18,9 @@ import org.springframework.mail.MailSender;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import springbook.dao.UserDao;
+import springbook.learningtest.jdk.TransactionHandler;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
 import springbook.user.domain.UserLevelUpgradePolicy;
@@ -60,31 +60,48 @@ public class UserServiceTest {
 	
 	@Test
 	public void upgradeLevels() throws Exception {
-		userDao.deleteAll();
-		for(User user : users) {
-			userDao.add(user);
-		}
+		UserServiceImpl userServiceImpltest = new UserServiceImpl();
+		
+		userServiceImpltest.setUserLevelUpgradePolicy(this.userLevelUpgradePolicy);
+//		userDao.deleteAll();
+//		for(User user : users) {
+//			userDao.add(user);
+//		}
+		
+		MockUserDao mockUserDao = new MockUserDao(this.users);
+		userServiceImpltest.setUserDao(mockUserDao);
 		
 		MockMailSender mockMailSender = new MockMailSender();
-		userServiceImpl.setMailSender(mockMailSender);
+		userServiceImpltest.setMailSender(mockMailSender);
 		
-		userService.upgradeLevels();
+		userServiceImpltest.upgradeLevels();
 		
 //		checkLevel(users.get(0), Level.BASIC);
 //		checkLevel(users.get(1), Level.SILVER);
 //		checkLevel(users.get(2), Level.SILVER);
 //		checkLevel(users.get(3), Level.GOLD);
 //		checkLevel(users.get(4), Level.GOLD);
-		checkLevelUpgrade(users.get(0), false);
-		checkLevelUpgrade(users.get(1), true);
-		checkLevelUpgrade(users.get(2), false);
-		checkLevelUpgrade(users.get(3), true);
-		checkLevelUpgrade(users.get(4), false);
+//		checkLevelUpgrade(users.get(0), false);
+//		checkLevelUpgrade(users.get(1), true);
+//		checkLevelUpgrade(users.get(2), false);
+//		checkLevelUpgrade(users.get(3), true);
+//		checkLevelUpgrade(users.get(4), false);
+		
+		List<User> updated = mockUserDao.getUpdated();
+		assertThat(updated.size(), is(2));
+		checkUserAndLevel(updated.get(0), "joytouch", Level.SILVER);
+		checkUserAndLevel(updated.get(1), "madnite1", Level.GOLD);
+		
 		
 		List<String> requests = mockMailSender.getRequests();
 		assertThat(requests.size(), is(2));
 		assertThat(requests.get(0), is(users.get(1).getEmail()));
 		assertThat(requests.get(1), is(users.get(3).getEmail()));
+	}
+	
+	private void checkUserAndLevel(User updated, String expectedId, Level expectedLevel) {
+		assertThat(updated.getId(), is(expectedId));
+		assertThat(updated.getLevel(), is(expectedLevel));
 	}
 	
 	private void checkLevel(User user, Level expectedLevel) {
@@ -161,9 +178,14 @@ public class UserServiceTest {
 		testUserService.setUserLevelUpgradePolicy(this.userLevelUpgradePolicy);
 		testUserService.setMailSender(this.mailSender);
 		
-		UserServiceTx txUserService = new UserServiceTx();
-		txUserService.setTransactionManager(transactionManager);
-		txUserService.setUserService(testUserService);
+		TransactionHandler txHandler = new TransactionHandler();
+		txHandler.setTarget(testUserService);
+		txHandler.setTransactionManager(transactionManager);
+		txHandler.setPattern("upgradeLevels");
+		UserService txUserService = (UserService)Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { UserService.class }, txHandler);
+//		UserServiceTx txUserService = new UserServiceTx();
+//		txUserService.setTransactionManager(transactionManager);
+//		txUserService.setUserService(testUserService);
 		
 		userDao.deleteAll();
 		for(User user : users) userDao.add(user);
@@ -203,5 +225,33 @@ public class UserServiceTest {
 		public User get(String id) { throw new UnsupportedOperationException(); }
 		public int getCount() { throw new UnsupportedOperationException(); }
 	}
+	/* 계속 오류남
+	@Test
+	public void mockUpgradeLevels() throws Exception {
+		UserServiceImpl userServiceImpl = new UserServiceImpl();
+		
+		UserDao mockUserDao = mock(springbook.dao.UserDao.class);
+		when(mockUserDao.getAll()).thenReturn(this.users);
+		userServiceImpl.setUserDao(mockUserDao);
+		
+		MailSender mockMailSender = mock(MailSender.class);
+		userServiceImpl.setMailSender(mockMailSender);
+		
+		userServiceImpl.upgradeLevels();
+		
+		verify(mockUserDao, times(2)).update(any(User.class));
+		verify(mockUserDao, times(2)).update(any(User.class));
+		verify(mockUserDao).update(users.get(1));
+		assertThat(users.get(1).getLevel(), is(Level.SILVER));
+		verify(mockUserDao).update(users.get(3));
+		assertThat(users.get(3).getLevel(), is(Level.GOLD));
+		
+		ArgumentCaptor<SimpleMailMessage> mailMessageArg = ArgumentCaptor.forClass(SimpleMailMessage.class);
+		verify(mockMailSender, times(2)).send(mailMessageArg.capture());
+		List<SimpleMailMessage> mailMessages = mailMessageArg.getAllValues();
+		assertThat(mailMessages.get(0).getTo()[0], is(users.get(1).getEmail()));
+		assertThat(mailMessages.get(1).getTo()[0], is(users.get(3).getEmail()));
+	}
+	*/
 }
 
