@@ -18,5 +18,7 @@
 	<classpathentry kind="lib" path="src/lib/com.springsource.javax.mail-1.4.0.jar"/>
 	<classpathentry kind="lib" path="src/lib/org.springframework.context.support-3.0.3.release.jar"/>
 	<classpathentry kind="lib" path="src/lib/mockito-all-1.8.4.jar"/>
+	<classpathentry kind="lib" path="src/lib/com.springsource.org.aopalliance-1.0.0.jar"/>
+	<classpathentry kind="lib" path="src/lib/org.springframework.aop-3.0.3.release.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

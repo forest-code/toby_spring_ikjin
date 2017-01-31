@@ -14,7 +14,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailSender;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -28,6 +30,8 @@ import springbook.user.domain.UserLevelUpgradePolicy;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations="/springbook/test-applicationContext.xml")
 public class UserServiceTest {
+	@Autowired 
+	ApplicationContext context;
 	@Autowired
 	UserDao userDao;
 	@Autowired
@@ -172,17 +176,23 @@ public class UserServiceTest {
 	}
 	
 	@Test
+	@DirtiesContext
 	public void upgradeAllOrNothing() throws Exception {
 		TestUserService testUserService = new TestUserService(users.get(3).getId());
 		testUserService.setUserDao(this.userDao);
 		testUserService.setUserLevelUpgradePolicy(this.userLevelUpgradePolicy);
 		testUserService.setMailSender(this.mailSender);
 		
-		TransactionHandler txHandler = new TransactionHandler();
-		txHandler.setTarget(testUserService);
-		txHandler.setTransactionManager(transactionManager);
-		txHandler.setPattern("upgradeLevels");
-		UserService txUserService = (UserService)Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { UserService.class }, txHandler);
+		TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService",TxProxyFactoryBean.class);
+		txProxyFactoryBean.setTarget(testUserService);
+		UserService txUserService = (UserService) txProxyFactoryBean.getObject();
+		
+//		TransactionHandler txHandler = new TransactionHandler();
+//		txHandler.setTarget(testUserService);
+//		txHandler.setTransactionManager(transactionManager);
+//		txHandler.setPattern("upgradeLevels");
+//		UserService txUserService = (UserService)Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { UserService.class }, txHandler);
+		
 //		UserServiceTx txUserService = new UserServiceTx();
 //		txUserService.setTransactionManager(transactionManager);
 //		txUserService.setUserService(testUserService);

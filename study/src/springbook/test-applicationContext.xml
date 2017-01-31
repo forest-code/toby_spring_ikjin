@@ -14,9 +14,11 @@
 
 	<bean id="mailSender" class="springbook.user.service.DummyMailSender" /> 
 	
-	<bean id="userService" class="springbook.user.service.UserServiceTx">
-		<property name="userService" ref="userServiceImpl" />
+	<bean id="userService" class="springbook.user.service.TxProxyFactoryBean">
+		<property name="serviceInterface" value="springbook.user.service.UserService" />
 		<property name="transactionManager" ref="transactionManager" />
+		<property name="target" ref="userServiceImpl" />
+		<property name="pattern" value="upgradeLevels" />
 	</bean>
 	
 	<bean id="userServiceImpl" class="springbook.user.service.UserServiceImpl">
