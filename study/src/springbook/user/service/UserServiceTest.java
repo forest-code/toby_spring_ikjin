@@ -5,7 +5,6 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +12,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailSender;
@@ -22,7 +22,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import springbook.dao.UserDao;
-import springbook.learningtest.jdk.TransactionHandler;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
 import springbook.user.domain.UserLevelUpgradePolicy;
@@ -183,9 +182,9 @@ public class UserServiceTest {
 		testUserService.setUserLevelUpgradePolicy(this.userLevelUpgradePolicy);
 		testUserService.setMailSender(this.mailSender);
 		
-		TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService",TxProxyFactoryBean.class);
-		txProxyFactoryBean.setTarget(testUserService);
-		UserService txUserService = (UserService) txProxyFactoryBean.getObject();
+		ProxyFactoryBean ProxyFactoryBean = context.getBean("&userService",ProxyFactoryBean.class);
+		ProxyFactoryBean.setTarget(testUserService);
+		UserService txUserService = (UserService) ProxyFactoryBean.getObject();
 		
 //		TransactionHandler txHandler = new TransactionHandler();
 //		txHandler.setTarget(testUserService);
