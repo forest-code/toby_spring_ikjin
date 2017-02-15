@@ -17,12 +17,16 @@ public class TransactionAdvice implements MethodInterceptor {
 	public Object invoke(MethodInvocation invocation) throws Throwable {
 		TransactionStatus status = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
 		
+		System.out.println("invoke");
+		
 		try {
 			Object ret = invocation.proceed();
 			this.transactionManager.commit(status);
+			System.out.println("invoke try");
 			return ret;
 		} catch(RuntimeException e) {
 			this.transactionManager.rollback(status);
+			System.out.println("invoke catch");
 			throw e;
 		}
 	}
