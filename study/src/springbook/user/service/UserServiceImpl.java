@@ -6,6 +6,7 @@ import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import springbook.dao.UserDao;
@@ -13,6 +14,7 @@ import springbook.user.domain.Level;
 import springbook.user.domain.User;
 import springbook.user.domain.UserLevelUpgradePolicy;
 
+//@Transactional
 public class UserServiceImpl implements UserService{
 	UserDao userDao;
 	UserLevelUpgradePolicy userLevelUpgradePolicy;
@@ -79,5 +81,25 @@ public class UserServiceImpl implements UserService{
 		mailMessage.setText("사용자님의 등급이 " + user.getLevel().name());
 		
 		this.mailSender.send(mailMessage);
+	}
+
+	@Override
+	public User get(String id) {
+		return userDao.get(id);
+	}
+
+	@Override
+	public List<User> getAll() {
+		return userDao.getAll();
+	}
+
+	@Override
+	public void deleteAll() {
+		userDao.deleteAll();
+	}
+
+	@Override
+	public void update(User user) {
+		userDao.update(user);
 	}
 }

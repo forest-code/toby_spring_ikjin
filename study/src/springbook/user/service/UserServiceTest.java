@@ -15,11 +15,18 @@ import org.junit.runner.RunWith;
 import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.mail.MailSender;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import springbook.dao.UserDao;
 import springbook.user.domain.Level;
@@ -28,6 +35,8 @@ import springbook.user.domain.UserLevelUpgradePolicy;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations="/springbook/test-applicationContext.xml")
+@Transactional
+@TransactionConfiguration(defaultRollback=false)
 public class UserServiceTest {
 //	@Autowired 
 //	ApplicationContext context;
@@ -45,6 +54,7 @@ public class UserServiceTest {
 	PlatformTransactionManager transactionManager;
 	@Autowired
 	MailSender mailSender;
+	
 	List<User> users;
 	
 	@Before
@@ -114,6 +124,7 @@ public class UserServiceTest {
 		assertThat(userUpdate.getLevel(), is(expectedLevel));
 	}
 	
+	@Transactional(propagation=Propagation.NEVER)
 	private void checkLevelUpgrade(User user, boolean upgraded) {
 		User userUpdate = userDao.get(user.getId());
 		if(upgraded) {
@@ -142,7 +153,7 @@ public class UserServiceTest {
 		
 	}
 	
-	static class TestUserServiceImpl extends UserServiceImpl {		
+	static class TestUserService extends UserServiceImpl {		
 		private String id = "madnite1";
 		
 		@Override
@@ -168,6 +179,13 @@ public class UserServiceTest {
 			}
 		}
 		
+		@Override
+		public List<User> getAll() {
+			for(User user : super.getAll()) {
+				super.update(user);
+			}
+			return null;
+		}
 	}
 	
 	static class TestUserServiceException extends RuntimeException {
@@ -260,6 +278,48 @@ public class UserServiceTest {
 	@Test
 	public void advisorAutoProxyCreator() {
 		assertThat(testUserService, is(java.lang.reflect.Proxy.class));
+	}
+	
+	@Test(expected=TransientDataAccessResourceException.class)
+	public void readOnlyTransactionAttribute() {
+		this.testUserService.getAll();
+	}
+	
+	@Test
+	@Transactional
+	@Rollback(false)
+	public void transactionSync() {
+//		userDao.deleteAll();
+//		assertThat(userDao.getCount(), is(0));
+//		
+//		DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();
+//		txDefinition.setReadOnly(true);	//읽기전용
+//		TransactionStatus txStatus = transactionManager.getTransaction(txDefinition);
+		
+		//1.default
+		userService.deleteAll();		
+		userService.add(users.get(0));
+		userService.add(users.get(1));
+		//3.jdbcTemplat Test
+//		assertThat(userDao.getCount(), is(2));
+//		
+//		transactionManager.rollback(txStatus);
+//		
+//		assertTaht(userDao.getCount(), is(0));
+		
+		//2.jdbcTemplate
+//		userDao.deleteAll();
+		
+		//4.rollback Test
+//		try {
+//			userService.deleteAll();		
+//			userService.add(users.get(0));
+//			userService.add(users.get(1));
+//		} finally {
+//			transactionManager.rollback(txStatus);
+//		}
+//		
+//		transactionManager.commit(txStatus);
 	}
 }
 

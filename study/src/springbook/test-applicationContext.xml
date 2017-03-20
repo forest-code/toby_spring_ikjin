@@ -9,6 +9,8 @@
 						http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
 						http://www.springframework.org/schema/tx
 						http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+	<tx:annotaion-driven />
+	
 	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource" >
 		<property name="driverClass" value="com.mysql.jdbc.Driver" />
 		<property name="url" value="jdbc:mysql://localhost/springdb" />
@@ -65,10 +67,14 @@
 <!-- 		<property name="pointcut" ref="transactionPointcut" /> -->
 <!-- 	</bean> -->
 
+<!-- 	<aop:config> -->
+<!-- 		<aop:pointcut id="transactionPointcut" expression="execution(* *..*ServiceImpl.upgrade*(..))" /> -->
+<!-- 		<aop:advisor advice-ref="transactionAdvice" pointcut-ref="transactionPointcut" /> -->
+<!-- 		<aop:advisor advice-ref="batchTxAdvice" pointcut="execution(* *..*BatchJob.*(..))" /> -->
+<!-- 	</aop:config> -->
+	
 	<aop:config>
-		<aop:pointcut id="transactionPointcut" expression="execution(* *..*ServiceImpl.upgrade*(..))" />
-		<aop:advisor advice-ref="transactionAdvice" pointcut-ref="transactionPointcut" />
-		<aop:advisor advice-ref="batchTxAdvice" pointcut="execution(* *..*BatchJob.*(..))" />
+		<aop:advisor advice-ref="transactionAdvice" pointcut="bean(*Servcie)" />
 	</aop:config>
 	
 <!-- 	<bean id="transactionAdvice" class="org.springframework.transaction.interceptor.TransactionInterceptor"> -->
@@ -89,6 +95,16 @@
 <!-- 			<tx:method name="*" propagation="REQUIRED" /> -->
 <!-- 		</tx:attributes> -->
 <!-- 	</tx:advice> -->
+	
+<!-- 	<bean id="transactionAdvice" class="org.springframework.transaction.interceptor.TransactionInterceptor"> -->
+<!-- 		<property name="transactionManager" ref="transactionManager" /> -->
+<!-- 		<property name="transactionAttributes"> -->
+<!-- 			<props> -->
+<!-- 				<prop key="get*">PROPAGATION_REQUIRED, readOnly</prop> -->
+<!-- 				<prop key="*">PROPAGATION_REQUIRED</prop> -->
+<!-- 			</props> -->
+<!-- 		</property> -->
+<!-- 	</bean> -->
 	
 	<tx:advice id="transactionAdvice">
 		<tx:attributes>
